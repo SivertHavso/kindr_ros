@@ -1,4 +1,7 @@
 # Vector type definition (based on Kindr definitions)
+
+std_msgs/Header header
+
 uint8 TYPE_TYPELESS=0
 uint8 TYPE_JERK=6
 uint8 TYPE_ACCELERATION=7
@@ -12,7 +15,6 @@ uint8 TYPE_ANGULAR_VELOCITY=14
 uint8 TYPE_TORQUE=16
 uint8 TYPE_ANGULAR_MOMEMTUM=17
 
-Header header
 uint8 type
 string name
 geometry_msgs/Vector3 vector # Frame defined in header

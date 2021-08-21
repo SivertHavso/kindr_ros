@@ -1,57 +1,100 @@
 cmake_minimum_required(VERSION 3.5.1)
 project(kindr_ros)
 
-add_definitions(-std=c++11)
+# Default to C99
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
+endif()
 
-find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs tf
-  )
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 
-# Attempt to find catkinized kindr
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+## Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
 find_package(kindr QUIET)
 if(NOT kindr_FOUND)
   # Attempt to find package-based kindr
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(kindr kindr REQUIRED)
+  set(kidr_INCLUDE_DIRS ${kindr_INCLUDE_DIRS})
 endif()
 
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 QUIET)
+if(NOT EIGEN3_FOUND)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(EIGEN3 REQUIRED eigen3)
+  set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
+endif()
 
-catkin_package(
-  INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIR}
-  #  LIBRARIES kindr_ros
-  CATKIN_DEPENDS geometry_msgs tf
-  DEPENDS kindr
+include_directories(
+  include
+  ${EIGERN_INCLUDE_DIRS}
+  ${kindr_INCLUDE_DIRS}
 )
 
-include_directories(include)
-include_directories(${catkin_INCLUDE_DIRS})
-include_directories(${EIGEN3_INCLUDE_DIR})
-include_directories(${kindr_INCLUDE_DIRS})
+set(dependencies
+  tf2
+  geometry_msgs
+)
+
+#############
+## Install ##
+#############
+
+# Mark cpp header files for installation
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION include/${PROJECT_NAME}
+  FILES_MATCHING PATTERN "*.hpp"
+)
 
 #############
 ## Testing ##
 #############
 
-if(CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(${PROJECT_NAME}-test
-    test/test_main.cpp
-    test/RosGeometryMsgPhysicalQuantitiesTest.cpp
-    test/RosGeometryMsgRotationTest.cpp
-    test/RosGeometryMsgPoseTest.cpp
-    test/RosTfPoseTest.cpp
-    test/TfConventionTest.cpp
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test
+if(BUILD_TESTING)
+    # Linting is setup this way to add a filter
+  # to ament_cpplint to ignore the lack of
+  # copyright messages at the top of files.
+  # Copyright messages are being checked for by both
+  # ament_cmake_cpplint & ament_cmake_copyright.
+
+  find_package(ament_lint_auto REQUIRED)
+  find_package(ament_lint_auto QUIET)
+  if(ament_lint_auto_FOUND)
+    # exclude copyright checks
+    list(APPEND AMENT_LINT_AUTO_EXCLUDE
+      ament_cmake_cpplint
+      ament_cmake_copyright
     )
-  if(TARGET ${PROJECT_NAME}-test)
-    target_link_libraries(${PROJECT_NAME}-test ${catkin_LIBRARIES})
-    find_package(cmake_code_coverage QUIET)
-    if(cmake_code_coverage_FOUND)
-      add_gtest_coverage(TEST_BUILD_TARGETS ${PROJECT_NAME}-test)
-    endif(cmake_code_coverage_FOUND)
+    ament_lint_auto_find_test_dependencies()
+
+    # run cpplint without copyright filter
+    find_package(ament_cmake_cpplint)
+    ament_cpplint(
+      FILTERS -legal/copyright
+    )
   endif()
+
+  find_package(ament_cmake_gtest REQUIRED)
+
+  add_subdirectory(test)
 endif()
 
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  )
+ament_export_include_directories(
+  include
+  ${EIGEN3_INCLUDE_DIRS}
+  ${kindr_INCLUDE_DIRS})
+
+ament_export_dependencies(${dependencies})
+
+ament_package()
